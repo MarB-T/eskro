@@ -1,20 +1,96 @@
 //import DB from '../utils/db.js';
 import UserModel from '../models/users.js';
+import bcrypt from 'bcrypt';
+import { validateUser, validateLogin } from '../utils/validation.js';
+import { signAccessToken, signRefreshToken } from '../utils/jwt.js';
 
 class UsersController {
   async createUser(req, res) {
+    const { error, value: validatedLoginData } = validateUser(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+    const emailRegistered = await UserModel.findOne({ email: validatedLoginData.email });
+    const phoneNumberRegistered = await UserModel.findOne({ phoneNumber: validatedLoginData.phoneNumber });
+    if (phoneNumberRegistered) {
+      return res.status(400).json({ message: 'Phone number already exists' });
+    }
+    if (emailRegistered) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+    const { password, ...userData } = req.body;
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
     try {
-      const newUser = await UserModel.create(req.body);
-      res.status(201).json(newUser);
+      const newUser = await UserModel.create({ ...userData, password: hashedPassword });
+      const accessToken = await signAccessToken(newUser._id);
+      res.status(201).json({accessToken});
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
   }
 
+  async loginUser(req, res, next) {
+    try {
+      const { error, value: validatedLoginData } = validateLogin(req.body);
+      if (error) {
+        // Use middleware for centralized error handling
+        return next(new Error('Invalid login credentials'));
+      }
+
+      const user = await UserModel.findOne({ email: validatedLoginData.email });
+      if (!user) {
+        // Generic error message for production
+        return res.status(400).json({ message: 'Invalid login credentials' });
+      }
+
+      const { password } = user; // Destructuring assignment
+      const validPassword = await bcrypt.compare(validatedLoginData.password, password);
+      if (!validPassword) {
+        return res.status(400).json({ message: 'Invalid login credentials' });
+      }
+
+      const accessToken = await signAccessToken(user._id);
+      const refreshToken = await signRefreshToken(user._id);
+      res.status(200).json({ accessToken, refreshToken });
+    } catch (err) {
+      // Handle unexpected errors using middleware
+      return next(err);
+    }
+  }
+
+
   async getAllUsers(req, res) {
     try {
       const users = await UserModel.find();
       res.status(200).json(users);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+  }
+
+  async updateUser(req, res) {
+    try {
+      const updatedUser = await UserModel.findByIdAndUpdate(req.params);
+      res.status(200).json(updatedUser);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+  }
+
+  async getUserByPhoneNumber(req, res) {
+    try {
+      const user = await UserModel.findOne({ phoneNumber: req.params.phoneNumber });
+      res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+  }
+
+  async deleteUser(req, res) {
+    try {
+      const deletedUser = await UserModel.findByIdAndDelete(req.params);
+      res.status(200).json(deletedUser);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

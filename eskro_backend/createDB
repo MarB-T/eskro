@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+HOST="localhost"
+PORT="27017"
+DB_NAME="$1"
+COLLECTION_NAME="$2"
+
+if [ -z "$DB_NAME" ]; then
+    echo "DB_NAME is required"
+    echo "Usage $ createDB <DB_Name> <COLLECTION_Name>"
+    exit 1
+fi
+
+mongosh --host "$HOST" --port "$PORT" --eval "db.getSiblingDB('$DB_NAME').createCollection('$COLLECTION_NAME')"
+
+echo "Collection '$COLLECTION_NAME' created in database '$DB_NAME'"
+
+

@@ -1,10 +1,14 @@
 import express from 'express';
-import userController from '../controllers/usersController.js';
+import UsersController from '../controllers/usersController.js';
+import { verifyAccessToken } from '../utils/jwt.js';
 
 const router = express.Router();
+const usersController = new UsersController();
 
 // user routes
-router.post('/users');
+router.get('/users', verifyAccessToken, usersController.getAllUsers);
+router.post('/register', usersController.createUser);
+router.post('/login', usersController.loginUser);
 router.get('/users/:id');
 router.put('/users/:id');
 
