@@ -7,7 +7,7 @@ const host = process.env.DB_HOST;
 const port = process.env.DB_PORT;
 const db = process.env.DB_NAME;
 const uri = `mongodb://${host}:${port}/${db}`;
-console.log(uri);
+
 async function connectToDB() {
   try {
     if (!mongoose.connection.readyState) {
@@ -32,12 +32,6 @@ mongoose.connection.on('disconnected', () => {
   console.log('Disconnected from MongoDB');
 });
 
-process.on('SIGINT', async () => {
-  await mongoose.connection.close();
-  process.exit(0);
-});
-
-connectToDB();
 
 export default connectToDB
 

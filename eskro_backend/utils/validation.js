@@ -21,4 +21,16 @@ const validateLogin = (user) => {
   return schema.validate(user);
 }
 
-export { validateUser, validateLogin };
+const validateContract = (contract) => {
+  const schema = Joi.object({
+    seller: Joi.string().required().length(24),
+    buyer: Joi.boolean().required().length(24),
+    description: Joi.string().required(),
+    price: Joi.number().required(),
+    deadline: Joi.date().required(),
+  });
+
+  return schema.validate(contract);
+}
+
+export { validateUser, validateLogin, validateContract };

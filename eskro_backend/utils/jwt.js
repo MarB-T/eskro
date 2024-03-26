@@ -1,5 +1,6 @@
 import JWT from 'jsonwebtoken';
 import createError from 'http-errors';
+import redisClient from './initRedis.js';
 
 
 const signAccessToken = (userid) => {
@@ -16,12 +17,13 @@ const signAccessToken = (userid) => {
         // console.log(err.message);
         reject(createError.InternalServerError());
         }
+        // console.log(`Access token signed: ${token}`);
         resolve(token);
     });
   });
 }
 
-const signRefreshToken = (userid) => {
+const signRefreshToken = async (userid) => {
   return new Promise((resolve, reject) => {
     const payload = {};
     const secret = process.env.REFRESH_TOKEN_SECRET;
@@ -34,10 +36,22 @@ const signRefreshToken = (userid) => {
         if (err) {
         // console.log(err.message);
         reject(createError.InternalServerError());
-        }
-        resolve(token);
-    });
-  });
+        } else {
+        // console.log('Connecting to redis...');
+        // redisClient.connect();
+          redisClient.SET(userid.toString(), token, {EX: 31536000})
+          .then((reply) => {
+            console.log(reply);
+            resolve(token);
+          })
+          .catch((err) => {
+            console.log(err.message);
+            reject(createError.InternalServerError());
+            return;
+          });
+        }  
+         });   // redisClient.quit();}      
+  });   
 }
 
 const verifyAccessToken = (req, res, next) => {
@@ -55,4 +69,22 @@ const verifyAccessToken = (req, res, next) => {
   });
 }
 
-export { signAccessToken, signRefreshToken, verifyAccessToken };
+const verifyRefreshToken = (token) => {
+  return new Promise((resolve, reject) => {
+    JWT.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, payload) => {
+      if (err) return reject(createError.Unauthorized());
+      const userId = payload.aud;
+      redisClient.GET(userId, (err, result) => {
+        if (err) {
+          console.log(err.message);
+          reject(createError.InternalServerError());
+          return;
+        }
+        if (token === result) return resolve(userId);
+        reject(createError.Unauthorized());
+      })
+    });
+  });
+}
+
+export { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken };
