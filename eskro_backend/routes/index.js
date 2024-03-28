@@ -2,6 +2,7 @@ import express from 'express';
 import UsersController from '../controllers/usersController.js';
 import ContractController from '../controllers/contractController.js';
 import { verifyAccessToken } from '../utils/jwt.js';
+import { mpesaStkPush, mpesaCallback } from '../utils/mpesaSTK.js';
 
 const router = express.Router();
 const usersController = new UsersController();
@@ -19,10 +20,12 @@ router.post('/logout', usersController.logoutUser);
 
 // eskrow routes
 router.post('/createContract', verifyAccessToken, contractController.createContract);
-router.get('contract/:id', verifyAccessToken, contractController.getContract);
-router.put('/escrows/:id/complete')
-router.put('/escrows:id/dispute');
-
+router.get('/contracts', verifyAccessToken, contractController.getContracts);
+router.put('/contract/pay/:id', verifyAccessToken, contractController.updatePayment);
+// router.put('/contract/condition/:id', verifyAccessToken, contractController.updateCondition);
+// router.put('/escrows:id/dispute');
+router.post('/mpesaSTK', mpesaStkPush);
+router.post('/callback', mpesaCallback);
 //
 
 export default router;

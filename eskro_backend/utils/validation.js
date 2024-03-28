@@ -24,7 +24,7 @@ const validateLogin = (user) => {
 const validateContract = (contract) => {
   const schema = Joi.object({
     seller: Joi.string().required().length(24),
-    buyer: Joi.boolean().required().length(24),
+    buyer: Joi.string().required().length(24),
     description: Joi.string().required(),
     price: Joi.number().required(),
     deadline: Joi.date().required(),
